@@ -21,7 +21,8 @@ interface StickyNoteContractProps {
   onError: () => void;
 }
 
-const STICKY_NOTES_CONTRACT_ADDRESS = '0x123...'; // This would be the deployed contract address
+// TODO: Replace with actual deployed contract address
+const STICKY_NOTES_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || null;
 const STICKY_NOTES_ABI = [
   {
     inputs: [
@@ -62,6 +63,28 @@ export default function StickyNoteContract({
       onError();
     }
   };
+
+  // For demo purposes, skip the actual blockchain transaction
+  if (!STICKY_NOTES_CONTRACT_ADDRESS) {
+    return (
+      <div className="w-full">
+        <button
+          onClick={() => {
+            // Simulate success after a brief delay for demo
+            setTimeout(() => {
+              onSuccess();
+            }, 1000);
+          }}
+          className="w-full px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors"
+        >
+          Post Note (Demo Mode)
+        </button>
+        <div className="mt-2 text-xs text-gray-500 text-center">
+          Demo mode - notes stored locally
+        </div>
+      </div>
+    );
+  }
 
   const calls = [{
     to: STICKY_NOTES_CONTRACT_ADDRESS as `0x${string}`,

@@ -125,27 +125,31 @@ export default function App() {
               Note
             </button>
             <Wallet>
-              <ConnectWallet className="border border-gray-200 hover:border-gray-300 rounded-lg px-3 py-2 transition-colors">
-                <Avatar className="h-5 w-5" />
-                <Name />
+              <ConnectWallet className="border border-gray-200 hover:border-gray-300 rounded-lg px-3 py-2 transition-colors bg-white">
+                <div className="flex items-center gap-2 text-black">
+                  <Avatar className="h-5 w-5 border border-gray-300 rounded-full bg-gray-100" />
+                  <Name className="text-black font-medium" />
+                </div>
               </ConnectWallet>
               <WalletDropdown className="bg-white border border-gray-200 shadow-lg rounded-lg">
-                <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                  <Avatar />
-                  <Name />
-                  <Address />
-                  <EthBalance />
+                <Identity className="px-4 py-3" hasCopyAddressOnClick>
+                  <Avatar className="mb-2" />
+                  <Name className="text-black font-semibold text-base block mb-1" />
+                  <Address className="text-gray-500 text-sm block mb-1" />
+                  <EthBalance className="text-gray-500 text-sm block" />
                 </Identity>
                 <WalletDropdownLink
                   icon="wallet"
                   href="https://keys.coinbase.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:bg-gray-50"
+                  className="hover:bg-gray-50 text-black font-medium block px-4 py-2"
                 >
-                  Wallet
+                  <span className="text-black">Wallet</span>
                 </WalletDropdownLink>
-                <WalletDropdownDisconnect className="hover:bg-red-50 text-red-600" />
+                <WalletDropdownDisconnect className="hover:bg-red-50 text-red-600 font-medium block px-4 py-2">
+                  <span className="text-red-600">Disconnect</span>
+                </WalletDropdownDisconnect>
               </WalletDropdown>
             </Wallet>
           </div>
@@ -212,7 +216,7 @@ export default function App() {
                   value={newNote.content}
                   onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
                   placeholder="What's on your mind?"
-                  className="w-full h-24 p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:border-black transition-colors"
+                  className="w-full h-24 p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:border-black transition-colors text-gray-900 placeholder-gray-500"
                   autoFocus
                 />
                 <div className="flex justify-end gap-2 mt-4">
@@ -240,7 +244,7 @@ export default function App() {
                 <h3 className="text-lg font-semibold mb-4 text-black">Post Onchain</h3>
                 
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                  <div className={`p-3 rounded text-sm ${
+                  <div className={`p-3 rounded text-sm text-gray-900 ${
                     pendingNote.color === 'yellow' ? 'bg-yellow-200' :
                     pendingNote.color === 'pink' ? 'bg-pink-200' :
                     pendingNote.color === 'blue' ? 'bg-blue-200' :

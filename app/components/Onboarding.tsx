@@ -68,9 +68,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             
             <h2 className="text-3xl font-bold text-black mb-2">Connected</h2>
             <Wallet>
-              <div className="flex items-center justify-center gap-2 text-gray-600 mb-8">
-                <Avatar className="h-5 w-5" />
-                <Name />
+              <div className="flex items-center justify-center gap-2 mb-8">
+                <Avatar className="h-5 w-5 border border-gray-300 rounded-full bg-gray-100" />
+                <Name className="text-black font-medium" />
               </div>
             </Wallet>
             

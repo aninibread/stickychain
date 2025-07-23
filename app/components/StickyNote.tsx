@@ -137,7 +137,7 @@ export default function StickyNote({
             ref={textareaRef}
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="flex-1 bg-transparent border-none outline-none resize-none text-sm min-h-16"
+            className="flex-1 bg-transparent border-none outline-none resize-none text-sm min-h-16 text-gray-900"
             style={{ 
               height: 'auto',
               minHeight: '64px'
@@ -167,11 +167,11 @@ export default function StickyNote({
               e.stopPropagation();
               setIsEditing(true);
             }}
-            className="text-sm text-gray-800 whitespace-pre-wrap mb-2 cursor-text"
+            className="text-sm text-gray-900 whitespace-pre-wrap mb-2 cursor-text"
           >
             {content || 'Double-click to edit...'}
           </div>
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-600">
             by {author}
           </div>
         </>

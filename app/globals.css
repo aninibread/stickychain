@@ -25,3 +25,66 @@ body {
     text-wrap: balance;
   }
 }
+
+/* OnchainKit component styling for better visibility */
+@layer components {
+  /* Wallet components - ensure proper backgrounds */
+  .ockWalletDropdown_Container {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+  }
+  
+  /* Identity component styling */
+  .ockIdentity_Container {
+    text-align: left !important;
+  }
+  
+  /* Name component */
+  .ockName_Container {
+    font-weight: 600 !important;
+    color: #000000 !important;
+  }
+  
+  /* Address component */
+  .ockAddress_Container {
+    color: #6b7280 !important;
+    font-size: 0.875rem !important;
+  }
+  
+  /* Balance component */
+  .ockEthBalance_Container {
+    color: #6b7280 !important;
+    font-size: 0.875rem !important;
+  }
+  
+  /* Avatar styling for visibility */
+  .ockAvatar_Container {
+    border: 1px solid #d1d5db !important;
+    border-radius: 50% !important;
+  }
+  
+  /* Avatar image/icon */
+  .ockAvatar_Container img {
+    border-radius: 50% !important;
+  }
+  
+  /* Generated avatar icons */
+  .ockAvatar_Container svg {
+    color: #374151 !important;
+  }
+  
+  /* Connect wallet button text visibility */
+  .ockConnectWallet_Container button {
+    color: #000000 !important;
+  }
+  
+  /* Dropdown menu items */
+  .ockWalletDropdown_Container [role="menuitem"] {
+    color: #000000 !important;
+    padding: 8px 16px !important;
+  }
+  
+  .ockWalletDropdown_Container [role="menuitem"]:hover {
+    background-color: #f9fafb !important;
+  }
+}
