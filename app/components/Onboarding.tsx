@@ -8,6 +8,7 @@ import {
 import {
   Avatar,
   Name,
+  Identity,
 } from '@coinbase/onchainkit/identity';
 import { useAccount } from 'wagmi';
 
@@ -16,7 +17,7 @@ interface OnboardingProps {
 }
 
 export default function Onboarding({ onComplete }: OnboardingProps) {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
 
   useEffect(() => {
     if (isConnected) {
@@ -67,12 +68,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </div>
             
             <h2 className="text-3xl font-bold text-black mb-2">Connected</h2>
-            <Wallet>
-              <div className="flex items-center justify-center gap-2 mb-8">
+            {address && (
+              <Identity address={address} className="flex items-center justify-center gap-2 mb-8">
                 <Avatar className="h-5 w-5 border border-gray-300 rounded-full bg-gray-100" />
                 <Name className="text-black font-medium" />
-              </div>
-            </Wallet>
+              </Identity>
+            )}
             
             <div className="text-gray-500">Loading workspace...</div>
           </div>
