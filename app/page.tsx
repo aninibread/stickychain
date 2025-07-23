@@ -145,11 +145,9 @@ export default function App() {
                   rel="noopener noreferrer"
                   className="hover:bg-gray-50 text-black font-medium block px-4 py-2"
                 >
-                  <span className="text-black">Wallet</span>
+                  Wallet
                 </WalletDropdownLink>
-                <WalletDropdownDisconnect className="hover:bg-red-50 text-red-600 font-medium block px-4 py-2">
-                  <span className="text-red-600">Disconnect</span>
-                </WalletDropdownDisconnect>
+                <WalletDropdownDisconnect className="hover:bg-red-50 text-red-600 font-medium block px-4 py-2" />
               </WalletDropdown>
             </Wallet>
           </div>
