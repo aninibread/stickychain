@@ -168,7 +168,7 @@ export function useStickyNotes() {
     // 🔗 ONCHAIN ONLY - Notes are added via blockchain transaction only
     // The actual addition happens in the smart contract
     // The contract event will trigger a refetch from blockchain
-    console.log('🔗 addNote called - ONCHAIN TRANSACTION ONLY');
+    console.log('🔗 addNote called - ONCHAIN TRANSACTION ONLY', note);
     console.log('🚫 NO SESSION/LOCALSTORAGE - BLOCKCHAIN ONLY');
     console.log('📝 Note will be added via smart contract transaction');
   };
