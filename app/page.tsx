@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ConnectWallet,
   Wallet,
@@ -11,11 +11,10 @@ import {
 import {
   Avatar,
   Name,
-  Identity,
   Address,
 } from '@coinbase/onchainkit/identity';
-import { useAccount, useEnsName } from 'wagmi';
-import { base } from 'wagmi/chains';
+import { useAccount } from 'wagmi';
+import { baseSepolia } from 'wagmi/chains';
 import StickyNote from './components/StickyNote';
 import StickyNoteContract from './components/StickyNoteContract';
 import Onboarding from './components/Onboarding';
@@ -24,13 +23,9 @@ import { useStickyNotes } from './hooks/useStickyNotes';
 const colors = ['yellow', 'pink', 'blue', 'green', 'purple'];
 
 export default function App() {
-  const { address, isConnected, connector } = useAccount();
-  const { data: ensName } = useEnsName({ address, chainId: 1 });
-  
-  // Get wallet name from connector or ENS
-  const walletName = ensName || connector?.name || 'Wallet';
+  const { address, isConnected } = useAccount();
   const { notes, addNote } = useStickyNotes();
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newNote, setNewNote] = useState({ content: '', color: 'yellow' });
   const [placementMode, setPlacementMode] = useState(false);
@@ -48,8 +43,32 @@ export default function App() {
   };
 
   const handleOnboardingComplete = () => {
-    setOnboardingComplete(true);
+    // Onboarding complete - no state needed since we removed the modal
   };
+
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  // Show loading state during hydration
+  if (!hasMounted) {
+    return (
+      <div className="fixed inset-0 bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-20 h-20 mx-auto mb-8 bg-black rounded-lg flex items-center justify-center">
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </div>
+          <h1 className="text-5xl font-bold text-black mb-3 tracking-tight">
+            StickyChain
+          </h1>
+          <p className="text-gray-500 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show onboarding if wallet not connected
   if (!isConnected) {
@@ -196,13 +215,13 @@ export default function App() {
                     <div className="flex items-center gap-3 w-full">
                       <Avatar 
                         address={address}
-                        chain={base}
+                        chain={baseSepolia}
                         className="h-12 w-12 border-2 border-gray-600 rounded-full" 
                       />
                       <div className="flex-1 min-w-0">
                         <Name 
                           address={address}
-                          chain={base}
+                          chain={baseSepolia}
                           className="text-lg font-bold text-white block truncate"
                         />
                         <Address 

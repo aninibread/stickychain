@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useWatchContractEvent } from 'wagmi';
+import { useAccount, useReadContract, useWatchContractEvent, useSwitchChain } from 'wagmi';
+import { baseSepolia } from 'wagmi/chains';
 
 interface OnchainStickyNote {
   id: string;
@@ -48,8 +49,8 @@ const STICKY_NOTES_ABI = [
 
 export function useStickyNotes() {
   const { address, isConnected, chain } = useAccount();
+  const { switchChain } = useSwitchChain();
   const [notes, setNotes] = useState<OnchainStickyNote[]>([]);
-  const [forceRefetch, setForceRefetch] = useState(0);
 
   // Debug wallet connection
   console.log('=== WALLET STATUS ===');
@@ -57,7 +58,9 @@ export function useStickyNotes() {
   console.log('- Address:', address);
   console.log('- Chain ID:', chain?.id);
   console.log('- Chain Name:', chain?.name);
-  console.log('- Expected Chain IDs: 84532 (Base Sepolia) or 8453 (Base Mainnet)');
+  console.log('- Chain Object:', chain);
+  console.log('- Expected Chain ID: 84532 (Base Sepolia only)');
+  console.log('- Chain ID Match:', chain?.id === baseSepolia.id);
   console.log('====================');
 
   // Read notes from contract with aggressive retry strategy
@@ -66,9 +69,9 @@ export function useStickyNotes() {
     abi: STICKY_NOTES_ABI,
     functionName: 'getNotes',
     query: {
-      enabled: !!STICKY_NOTES_CONTRACT_ADDRESS && isConnected && (chain?.id === 84532 || chain?.id === 8453),
+      enabled: !!STICKY_NOTES_CONTRACT_ADDRESS && isConnected && chain?.id === baseSepolia.id,
       refetchInterval: 2000, // More frequent refetch
-      retry: (failureCount, error) => {
+      retry: (failureCount) => {
         // Retry up to 10 times for connection-related errors
         if (failureCount < 10) {
           console.log(`🔄 RETRY ATTEMPT ${failureCount + 1}/10 for blockchain connection`);
@@ -81,7 +84,6 @@ export function useStickyNotes() {
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
       staleTime: 0, // Always consider data stale
-      cacheTime: 0, // Don't cache to ensure fresh data
     }
   });
 
@@ -93,8 +95,8 @@ export function useStickyNotes() {
   console.log('- Query enabled conditions:');
   console.log('  - Has address:', !!STICKY_NOTES_CONTRACT_ADDRESS);
   console.log('  - Is connected:', isConnected);
-  console.log('  - On Base network:', chain?.id === 84532 || chain?.id === 8453);
-  console.log('  - Overall enabled:', !!STICKY_NOTES_CONTRACT_ADDRESS && isConnected && (chain?.id === 84532 || chain?.id === 8453));
+  console.log('  - On Base Sepolia:', chain?.id === baseSepolia.id);
+  console.log('  - Overall enabled:', !!STICKY_NOTES_CONTRACT_ADDRESS && isConnected && chain?.id === baseSepolia.id);
   console.log('=============================');
 
   // Watch for new notes being created - always call this hook with fallback address
@@ -112,7 +114,7 @@ export function useStickyNotes() {
 
   // Force refetch when wallet connects to ensure immediate blockchain sync
   useEffect(() => {
-    if (isConnected && STICKY_NOTES_CONTRACT_ADDRESS && (chain?.id === 84532 || chain?.id === 8453)) {
+    if (isConnected && STICKY_NOTES_CONTRACT_ADDRESS && chain?.id === baseSepolia.id) {
       console.log('🔗 WALLET CONNECTED - FORCING IMMEDIATE BLOCKCHAIN REFETCH');
       console.log('Wallet address:', address);
       console.log('Chain:', chain?.name, '(ID:', chain?.id, ')');
@@ -158,7 +160,20 @@ export function useStickyNotes() {
         intervals.forEach(clearTimeout);
       };
     }
-  }, [isConnected, address, chain?.id, refetch]);
+  }, [isConnected, address, chain?.id, chain?.name, refetch]);
+
+  // Auto-switch to Base Sepolia if connected but on wrong chain
+  useEffect(() => {
+    if (isConnected && chain && chain.id !== baseSepolia.id) {
+      console.log('🔄 WRONG CHAIN DETECTED - Switching to Base Sepolia');
+      console.log('Current chain:', chain.name, '(ID:', chain.id, ')');
+      console.log('Target chain: Base Sepolia (ID: 84532)');
+      
+      if (switchChain) {
+        switchChain({ chainId: baseSepolia.id });
+      }
+    }
+  }, [isConnected, chain, switchChain]);
 
   // Process contract data when it changes - PURE BLOCKCHAIN READING ONLY
   useEffect(() => {
@@ -213,14 +228,14 @@ export function useStickyNotes() {
         console.log('This likely means:');
         console.log('1. Contract not deployed at this address');
         console.log('2. Contract missing getNotes function'); 
-        console.log('3. Wrong network (need Base Sepolia or Base Mainnet)');
+        console.log('3. Wrong network (need Base Sepolia testnet only)');
         console.log('4. Network connection issue');
         setNotes([]); // Empty array - no fallback to session storage
       } else if (contractNotes === undefined) {
         console.log('⏳ BLOCKCHAIN READ IN PROGRESS...');
         console.log('🔗 Waiting for smart contract response...');
         console.log('🌐 Current network:', chain?.name, `(ID: ${chain?.id})`);
-        console.log('📋 Query enabled:', !!STICKY_NOTES_CONTRACT_ADDRESS && isConnected && (chain?.id === 84532 || chain?.id === 8453));
+        console.log('📋 Query enabled:', !!STICKY_NOTES_CONTRACT_ADDRESS && isConnected && chain?.id === baseSepolia.id);
         // Still loading, but no UI loading state shown
       } else {
         console.log('⚠️ UNEXPECTED BLOCKCHAIN RESPONSE:', contractNotes);
@@ -231,7 +246,7 @@ export function useStickyNotes() {
       console.log('🚫 NO FALLBACK TO SESSION - ONCHAIN ONLY MODE');
       setNotes([]);
     }
-  }, [contractNotes, error]);
+  }, [contractNotes, error, chain?.id, chain?.name, isConnected]);
 
   const addNote = (note: Omit<OnchainStickyNote, 'id' | 'timestamp'>) => {
     // 🔗 ONCHAIN ONLY - Notes are added via blockchain transaction only

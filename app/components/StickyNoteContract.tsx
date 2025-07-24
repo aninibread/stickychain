@@ -11,7 +11,6 @@ import {
 } from '@coinbase/onchainkit/transaction';
 import type { LifecycleStatus } from '@coinbase/onchainkit/transaction';
 import { encodeFunctionData } from 'viem';
-import { useAccount } from 'wagmi';
 
 interface StickyNoteContractProps {
   content: string;
@@ -48,7 +47,6 @@ export default function StickyNoteContract({
   onError 
 }: StickyNoteContractProps) {
   const [transactionHash, setTransactionHash] = useState<string>('');
-  const { chain } = useAccount();
 
   const handleOnStatus = (status: LifecycleStatus) => {
     console.log('Transaction status:', status);
@@ -66,7 +64,12 @@ export default function StickyNoteContract({
     }
     
     if (status.statusName === 'error') {
-      console.error('Transaction error:', status.statusData || 'Unknown error');
+      const errorData = status.statusData || {};
+      if (Object.keys(errorData).length === 0) {
+        console.log('Transaction cancelled or failed - no error details available');
+      } else {
+        console.log('Transaction error details:', errorData);
+      }
       onError();
     }
   };
@@ -102,9 +105,9 @@ export default function StickyNoteContract({
     })
   }];
 
-  // Get the correct chain ID - support both Base Sepolia and Base Mainnet
-  const chainId = chain?.id === 8453 ? 8453 : 84532;
-  const explorerUrl = chain?.id === 8453 ? 'https://basescan.org' : 'https://sepolia.basescan.org';
+  // Only support Base Sepolia testnet
+  const chainId = 84532;
+  const explorerUrl = 'https://sepolia.basescan.org';
 
   return (
     <div className="w-full">
