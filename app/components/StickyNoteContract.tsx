@@ -11,6 +11,7 @@ import {
 } from '@coinbase/onchainkit/transaction';
 import type { LifecycleStatus } from '@coinbase/onchainkit/transaction';
 import { encodeFunctionData } from 'viem';
+import { useAccount } from 'wagmi';
 
 interface StickyNoteContractProps {
   content: string;
@@ -47,19 +48,25 @@ export default function StickyNoteContract({
   onError 
 }: StickyNoteContractProps) {
   const [transactionHash, setTransactionHash] = useState<string>('');
+  const { chain } = useAccount();
 
   const handleOnStatus = (status: LifecycleStatus) => {
     console.log('Transaction status:', status);
     
     if (status.statusName === 'success') {
-      if (status.statusData.transactionReceipts && status.statusData.transactionReceipts.length > 0) {
-        setTransactionHash(status.statusData.transactionReceipts[0].transactionHash);
+      try {
+        if (status.statusData?.transactionReceipts && status.statusData.transactionReceipts.length > 0) {
+          setTransactionHash(status.statusData.transactionReceipts[0].transactionHash);
+        }
+        onSuccess();
+      } catch (error) {
+        console.error('Error processing successful transaction:', error);
+        onSuccess(); // Still call onSuccess since transaction succeeded
       }
-      onSuccess();
     }
     
     if (status.statusName === 'error') {
-      console.error('Transaction error:', status.statusData);
+      console.error('Transaction error:', status.statusData || 'Unknown error');
       onError();
     }
   };
@@ -95,10 +102,14 @@ export default function StickyNoteContract({
     })
   }];
 
+  // Get the correct chain ID - support both Base Sepolia and Base Mainnet
+  const chainId = chain?.id === 8453 ? 8453 : 84532;
+  const explorerUrl = chain?.id === 8453 ? 'https://basescan.org' : 'https://sepolia.basescan.org';
+
   return (
     <div className="w-full">
       <Transaction
-        chainId={84532} // Base Sepolia testnet
+        chainId={chainId}
         calls={calls}
         onStatus={handleOnStatus}
       >
@@ -116,7 +127,7 @@ export default function StickyNoteContract({
       {transactionHash && (
         <div className="mt-2 text-xs text-gray-500">
           <a 
-            href={`https://sepolia.basescan.org/tx/${transactionHash}`}
+            href={`${explorerUrl}/tx/${transactionHash}`}
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-black transition-colors"

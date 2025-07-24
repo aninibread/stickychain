@@ -21,9 +21,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   useEffect(() => {
     if (isConnected) {
-      setTimeout(() => {
-        onComplete();
-      }, 1200);
+      // Immediately redirect without showing connected state
+      onComplete();
     }
   }, [isConnected, onComplete]);
 
@@ -75,7 +74,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               </Identity>
             )}
             
-            <div className="text-gray-500">Loading workspace...</div>
+            <div className="text-gray-500">Redirecting...</div>
           </div>
         )}
       </div>

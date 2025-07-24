@@ -49,7 +49,7 @@ const STICKY_NOTES_ABI = [
 export function useStickyNotes() {
   const { address, isConnected, chain } = useAccount();
   const [notes, setNotes] = useState<OnchainStickyNote[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [forceRefetch, setForceRefetch] = useState(0);
 
   // Debug wallet connection
   console.log('=== WALLET STATUS ===');
@@ -57,18 +57,31 @@ export function useStickyNotes() {
   console.log('- Address:', address);
   console.log('- Chain ID:', chain?.id);
   console.log('- Chain Name:', chain?.name);
-  console.log('- Expected Chain ID: 84532 (Base Sepolia)');
+  console.log('- Expected Chain IDs: 84532 (Base Sepolia) or 8453 (Base Mainnet)');
   console.log('====================');
 
-  // Read notes from contract - always call this hook with fallback address
+  // Read notes from contract with aggressive retry strategy
   const { data: contractNotes, error, refetch } = useReadContract({
     address: STICKY_NOTES_CONTRACT_ADDRESS || '0x0000000000000000000000000000000000000000',
     abi: STICKY_NOTES_ABI,
     functionName: 'getNotes',
     query: {
       enabled: !!STICKY_NOTES_CONTRACT_ADDRESS && isConnected && (chain?.id === 84532 || chain?.id === 8453),
-      refetchInterval: 10000, // Refetch every 10 seconds
-      retry: false, // Don't retry failed calls
+      refetchInterval: 2000, // More frequent refetch
+      retry: (failureCount, error) => {
+        // Retry up to 10 times for connection-related errors
+        if (failureCount < 10) {
+          console.log(`🔄 RETRY ATTEMPT ${failureCount + 1}/10 for blockchain connection`);
+          return true;
+        }
+        return false;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      staleTime: 0, // Always consider data stale
+      cacheTime: 0, // Don't cache to ensure fresh data
     }
   });
 
@@ -97,6 +110,56 @@ export function useStickyNotes() {
     },
   });
 
+  // Force refetch when wallet connects to ensure immediate blockchain sync
+  useEffect(() => {
+    if (isConnected && STICKY_NOTES_CONTRACT_ADDRESS && (chain?.id === 84532 || chain?.id === 8453)) {
+      console.log('🔗 WALLET CONNECTED - FORCING IMMEDIATE BLOCKCHAIN REFETCH');
+      console.log('Wallet address:', address);
+      console.log('Chain:', chain?.name, '(ID:', chain?.id, ')');
+      console.log('Contract Address:', STICKY_NOTES_CONTRACT_ADDRESS);
+      
+      // Force immediate refetch with more aggressive attempts
+      const attemptRefetch = async (attempt = 1) => {
+        console.log(`🚀 EXECUTING FORCED REFETCH ATTEMPT ${attempt} FOR WALLET CONNECTION`);
+        try {
+          const result = await refetch();
+          console.log(`✅ REFETCH ATTEMPT ${attempt} SUCCESSFUL`);
+          console.log('Refetch result:', result);
+          
+          // If we got data, log it immediately
+          if (result.data && Array.isArray(result.data)) {
+            console.log(`🎯 IMMEDIATE RESULT: ${result.data.length} notes found`);
+            console.log('Notes data:', result.data);
+          } else {
+            console.log('🎯 IMMEDIATE RESULT: No data returned yet');
+          }
+        } catch (error) {
+          console.log(`❌ REFETCH ATTEMPT ${attempt} FAILED:`, error);
+          if (attempt < 8) {
+            // Retry up to 8 times with shorter delays
+            setTimeout(() => attemptRefetch(attempt + 1), 500 * attempt);
+          }
+        }
+      };
+      
+      // Start immediately with very aggressive retries
+      attemptRefetch();
+      const intervals = [
+        setTimeout(() => attemptRefetch(2), 200),
+        setTimeout(() => attemptRefetch(3), 600), 
+        setTimeout(() => attemptRefetch(4), 1200),
+        setTimeout(() => attemptRefetch(5), 2000),
+        setTimeout(() => attemptRefetch(6), 3000),
+        setTimeout(() => attemptRefetch(7), 5000),
+        setTimeout(() => attemptRefetch(8), 8000)
+      ];
+      
+      return () => {
+        intervals.forEach(clearTimeout);
+      };
+    }
+  }, [isConnected, address, chain?.id, refetch]);
+
   // Process contract data when it changes - PURE BLOCKCHAIN READING ONLY
   useEffect(() => {
     console.log('=== BLOCKCHAIN READ STATUS ===');
@@ -107,11 +170,19 @@ export function useStickyNotes() {
     console.log('Error type:', error?.name);
     console.log('Error message:', error?.message);
     console.log('Data source: BLOCKCHAIN ONLY');
+    console.log('Is connected:', isConnected);
+    console.log('Chain ID:', chain?.id);
 
     if (STICKY_NOTES_CONTRACT_ADDRESS) {
       if (contractNotes && Array.isArray(contractNotes)) {
         console.log('✅ BLOCKCHAIN READ SUCCESS:', contractNotes.length, 'notes from smart contract');
+        console.log('🌐 Network:', chain?.name, `(Chain ID: ${chain?.id})`);
         console.log('📦 Raw blockchain data:', contractNotes);
+        
+        if (contractNotes.length === 0) {
+          console.log('📝 CONTRACT IS EMPTY - No notes have been created yet on this network');
+          console.log('🎯 This is normal for a new contract or different network');
+        }
         
         // Transform contract data to our format - DIRECT FROM BLOCKCHAIN
         const transformedNotes: OnchainStickyNote[] = contractNotes.map((note, index) => {
@@ -137,7 +208,6 @@ export function useStickyNotes() {
         console.log('✅ FINAL BLOCKCHAIN NOTES TO DISPLAY:', transformedNotes);
         console.log('🚫 NO SESSION/LOCALSTORAGE USED - PURE ONCHAIN DATA');
         setNotes(transformedNotes);
-        setIsLoading(false);
       } else if (error) {
         console.log('❌ BLOCKCHAIN READ FAILED:', error);
         console.log('This likely means:');
@@ -146,21 +216,20 @@ export function useStickyNotes() {
         console.log('3. Wrong network (need Base Sepolia or Base Mainnet)');
         console.log('4. Network connection issue');
         setNotes([]); // Empty array - no fallback to session storage
-        setIsLoading(false);
       } else if (contractNotes === undefined) {
         console.log('⏳ BLOCKCHAIN READ IN PROGRESS...');
         console.log('🔗 Waiting for smart contract response...');
-        // Still loading, keep isLoading true
+        console.log('🌐 Current network:', chain?.name, `(ID: ${chain?.id})`);
+        console.log('📋 Query enabled:', !!STICKY_NOTES_CONTRACT_ADDRESS && isConnected && (chain?.id === 84532 || chain?.id === 8453));
+        // Still loading, but no UI loading state shown
       } else {
         console.log('⚠️ UNEXPECTED BLOCKCHAIN RESPONSE:', contractNotes);
         setNotes([]);
-        setIsLoading(false);
       }
     } else {
       console.log('❌ NO CONTRACT ADDRESS - CANNOT READ FROM BLOCKCHAIN');
       console.log('🚫 NO FALLBACK TO SESSION - ONCHAIN ONLY MODE');
       setNotes([]);
-      setIsLoading(false);
     }
   }, [contractNotes, error]);
 
@@ -173,34 +242,12 @@ export function useStickyNotes() {
     console.log('📝 Note will be added via smart contract transaction');
   };
 
-  const updateNote = (id: string, updates: Partial<OnchainStickyNote>) => {
-    // 🔗 ONCHAIN ONLY - Updates require separate smart contract function
-    // For now, we'll update locally as a temporary preview
-    // The next blockchain refetch will restore the true state
-    console.log('🔗 updateNote called - TEMPORARY LOCAL UPDATE');
-    console.log('📝 True state comes from blockchain only');
-    const updatedNotes = notes.map(note => 
-      note.id === id ? { ...note, ...updates } : note
-    );
-    setNotes(updatedNotes);
-  };
-
-  const deleteNote = (id: string) => {
-    // 🔗 ONCHAIN ONLY - Deletes require separate smart contract function
-    // For now, we'll delete locally as a temporary preview
-    // The next blockchain refetch will restore the true state
-    console.log('🔗 deleteNote called - TEMPORARY LOCAL DELETE');
-    console.log('📝 True state comes from blockchain only');
-    const updatedNotes = notes.filter(note => note.id !== id);
-    setNotes(updatedNotes);
-  };
+  // Notes are completely immutable - no local updates allowed
+  // All modifications must go through blockchain transactions
 
   return {
     notes,
-    isLoading,
     addNote,
-    updateNote,
-    deleteNote,
     isOnchain: !!STICKY_NOTES_CONTRACT_ADDRESS
   };
 }
